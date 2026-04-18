@@ -3,8 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import './App.css'
 import { useAuthContext } from "./context/AuthContext";
-import ChatbotAi from "./components/ChatAi";
-
+import ChatbotAi from "./components/chatAI"
 
 function App() {
   // 1. MỞ COMMENT DÒNG NÀY ĐỂ REACT ĐƯỢC LẮNG NGHE URL THAY ĐỔI
