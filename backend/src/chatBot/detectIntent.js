@@ -1,31 +1,11 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+// const { GoogleGenerativeAI } = require("@google/generative-ai");
 const apiKey = process.env.GROQ_API_KEY;
-const Specialty = require("../models/Speciatly");
+// const Specialty = require("../models/Speciatly");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Prompt hướng dẫn AI cách phân loại
-// const INTENT_PROMPT = `
-// Bạn là hệ thống phân loại ý định (Router) của một bệnh viện.
-// Nhiệm vụ của bạn là đọc câu chat của người dùng và trả về DUY NHẤT một chuỗi JSON hợp lệ.
-
-// Cấu trúc JSON mong muốn:
-// {
-//   "intent": "Tên_Intent",
-//   "entities": ["từ khóa 1", "từ khóa 2"]
-// }
-
-// Quy tắc chọn "intent" (CHỈ CHỌN 1 TRONG CÁC TỪ SAU):
-// 1. "MEDICAL": Người dùng kể bệnh, than đau, mô tả triệu chứng. (VD: "tôi hay bị ợ chua", "đau đầu quá").
-// 2. "BOOKING": Người dùng YÊU CẦU THỰC HIỆN ĐẶT LỊCH NGAY. Thường mang tính ra lệnh hoặc khẳng định. (VD: "đặt lịch khám cho tôi", "tôi muốn khám bác sĩ A", "chiều nay rảnh không"). TUYỆT ĐỐI KHÔNG CHỌN BOOKING NẾU CÂU CÓ CHỨA CÁC TỪ HỎI CÁCH LÀM (NHƯ: "LÀM SAO", "CÁCH").
-// 3. "PRODUCT": Người dùng muốn mua thuốc, hỏi giá thuốc, HOẶC hỏi thuốc chữa một triệu chứng nào đó. (VD: "bán tôi hộp panadol", "tôi bị sổ mũi thì uống thuốc gì", "đau đầu uống gì cho hết").
-// 4. "OUT_OF_SCOPE": Người dùng nói chuyện phiếm, hỏi những thứ không liên quan đến y tế. (VD: "thời tiết nay thế nào").
-// 5. "GREETING": Câu chào hỏi xã giao. (VD: "chào bạn", "hello").
-// 6. "FAQ": Người dùng HỎI ĐÁP, TÌM HIỂU CÁCH SỬ DỤNG website. Thường chứa các từ để hỏi: "làm sao", "cách nào", "hướng dẫn", "ở đâu". (VD: "làm sao để đặt lịch", "cách đặt lịch như thế nào", "xem lịch hẹn ở đâu", "cách tạo lịch rảnh").
-// `;
+// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
  const INTENT_PROMPT = `
- Bạn là hệ thống phân loại ý định (Router) của một bệnh viện.
+ Bạn là hệ thống phân loại ý định (Router) của một Trường Đại học.
 Nhiệm vụ của bạn là đọc câu chat của người dùng và trả về DUY NHẤT một chuỗi JSON hợp lệ.
 
 Cấu trúc JSON mong muốn:
@@ -42,33 +22,32 @@ Cấu trúc JSON mong muốn:
 // Hàm mới dùng AI để phân loại
 async function detectIntent(message) {
   try {
-    // Gọi model Gemini 1.5 Flash
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3-flash-preview",
-      systemInstruction: INTENT_PROMPT,
-      // Tính năng ép Gemini trả về JSON chuẩn
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1 // Để AI bớt sáng tạo, phân loại chính xác hơn
-      }
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant", // Model nhẹ, chạy cực nhanh
+        messages: [
+          { role: "system", content: INTENT_PROMPT },
+          { role: "user", content: message }
+        ],
+        response_format: { type: "json_object" }, // Ép trả về JSON
+        temperature: 0.1
+      })
     });
 
-    const result = await model.generateContent(message);
-    const responseText = result.response.text();
+    const data = await response.json();
+    console.log(JSON.stringify(data.choices[0].message, null, 2))
+    const result = JSON.parse(data.choices[0].message.content);
     
-    // Ép kiểu chuỗi trả về thành Object JSON
-    const parsedData = JSON.parse(responseText);
-    
-    console.log("🔍 [Phân loại Intent]:", parsedData);
-    
-    return parsedData;
+    return result; // Kết quả sẽ có dạng: { intent: "MEDICAL", entities: ["đau đầu"] }
 
   } catch (error) {
-    console.error("❌ Lỗi AI Router (Gemini):", error.message);
-    
-    // Nếu AI phân loại bị lỗi mạng hoặc quá tải, 
-    // Trả về mặc định là FAQ để hệ thống vẫn chạy tiếp sang luồng đọc Excel
-    return { intent: "FAQ", entities: [] }; 
+    console.error("Lỗi AI Router:", error);
+    return { intent: "UNKNOWN", entities: [] }; 
   }
 }
 

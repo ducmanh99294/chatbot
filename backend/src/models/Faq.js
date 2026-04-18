@@ -2,10 +2,6 @@ const mongoose = require("mongoose");
 
 const faqSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
     question: {
       type: String,
       required: true,
@@ -14,14 +10,8 @@ const faqSchema = new mongoose.Schema(
     answer: {
       type: String,
     },
-    order: {
-      type: Number,
-      default: 0,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    attachments: [String],
+    suggestions: [String]
   },
   { timestamps: true }
 );

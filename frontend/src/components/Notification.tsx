@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNotification, type NotificationItem } from '../context/NotificationContext';
-import '../assets/notification.css';
 
 const Notification: React.FC = () => {
   const { notifications, removeNotification } = useNotification();

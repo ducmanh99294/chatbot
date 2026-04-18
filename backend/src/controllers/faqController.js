@@ -1,4 +1,6 @@
 const Faq = require("../models/Faq");
+const XLSX = require("xlsx");
+const mongoose = require("mongoose");
 
 const DEFAULT_FAQS = [
   { question: "Làm thế nào để đặt lịch khám với bác sĩ?", answer: "Bạn có thể đặt lịch trực tuyến qua trang Đặt lịch: chọn chuyên khoa, bác sĩ, ngày giờ phù hợp và điền thông tin. Hệ thống sẽ gửi xác nhận qua email/SMS.", order: 1 },
@@ -51,3 +53,62 @@ exports.answerFaq = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 }
+const normalizeRow = (row) => {
+  const newRow = {};
+  for (let key in row) {
+    newRow[key.trim()] = row[key];
+  }
+  return newRow;
+};
+
+exports.uploadFile = async (req, res) => {
+  try {
+    
+    console.log("DB:", mongoose.connection.name);
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Chưa có file" });
+    }
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet);
+
+    console.log("RAW DATA:", data); // 👈 thêm cái này
+
+    const formatted = data
+      .map(normalizeRow)
+      .map(row => {
+        const question = row["Nội dung"]?.toString().trim();
+        const answer = row["Trả lời"]?.toString().trim();
+        const attachments = row["Đính kèm"]?.toString().trim() || [];
+        const suggestions = row["Câu hỏi gợi mở"]?.toString().trim() || [];
+
+        if (!question || !answer) return null;
+
+        return {
+          question,
+          answer,
+          attachments, // không có cũng OK
+          suggestions  // không có cũng OK
+        };
+      })
+      .filter(Boolean);
+    console.log("COLUMNS:", Object.keys(data[0]));
+    console.log("FORMATTED:", formatted); // 👈 log đúng chỗ
+
+    await Faq.deleteMany({});
+    const result = await Faq.insertMany(formatted);
+
+    console.log("Inserted:", result.length);
+
+    res.json({
+      message: "Import thành công",
+      total: formatted.length
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi import file" });
+  }
+};

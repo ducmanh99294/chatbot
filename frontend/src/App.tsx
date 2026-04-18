@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import './App.css'
 import { useAuthContext } from "./context/AuthContext";
-import ChatbotHome from "./components/ChatAIHome";
+import ChatbotHome from "./components/ChatAi";
 
 
 function App() {

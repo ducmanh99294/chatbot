@@ -1,9 +1,7 @@
 const { detectIntent } = require("./detectIntent");
-const { handleBookingContext, handleMedicalContext, handleFAQContext } = require("./buildContext");
+const {  handleFAQContext } = require("./buildContext");
 const generateReply = require("./generateReply");
-// const Product = require("../models/Product");
-// const TimeSlot = require("../models/TimeSlot");
-// const Appointment = require("../models/Appointment");
+const Faq = require("../models/Faq");
 
 // bộ nhớ tạm thời
 const userSessions = new Map();
@@ -44,62 +42,68 @@ function extractCoreKeywords(specialtyName) {
 module.exports = async function chatService(userId, message) {
   const msgText = message.toLowerCase().trim();
 
+  // 1. KIỂM TRA BỘ NHỚ TẠM
+  if (!userSessions.has(userId)) {
+    userSessions.set(userId, { step: null, topic: null, previousKeywords: [] });
+  }
+  const session = userSessions.get(userId);
+
+  // 2. XỬ LÝ NLP & PHÂN LOẠI
+  const nlpResult = await detectIntent(message); 
+  const intent = nlpResult.intent;
+  let entities = nlpResult.entities || [];
+
   // ==========================================
-  // 🔥 1. KIỂM TRA BỘ NHỚ TẠM TRƯỚC TIÊN
+  // 🧠 3. LOGIC KẾT NỐI TRÍ NHỚ (ĐƯA LÊN ƯU TIÊN 1)
   // ==========================================
-  if (userSessions.has(userId)) {
-    const session = userSessions.get(userId);
+  if (session.step === "WAITING_FOR_MAJOR") {
+    console.log(`🧠 [Memory] Đang chờ ngành. Topic đang nhớ: [${session.topic}]`);
 
-    // Xử lý nếu user đang ở trạng thái "Chờ nhập số điện thoại"
-    if (session.step === "WAITING_FOR_PHONE") {
-      
-      // Kiểm tra xem tin nhắn có chứa số điện thoại không (Regex cơ bản cho SĐT Việt Nam)
-      const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/g;
-      const phoneMatch = msgText.match(phoneRegex);
+    const hasMajorSign = msgText.includes("ngành") || msgText.includes("khoa") || entities.length > 0;
+    
+    if (hasMajorSign) {
+      // BƯỚC QUAN TRỌNG: Băm nhỏ câu nói của khách để chống gõ sai chính tả
+      const words = msgText.split(" ").filter(w => w.length > 2);
 
-      if (phoneMatch) {
-        const phoneNumber = phoneMatch[0];
-        
-        // TODO: Lưu phoneNumber, session.major (Ngành học) vào Database (MongoDB/MySQL)
-        console.log(`Đã lưu database: User ${userId} đăng ký tư vấn ngành ${session.major} với SĐT: ${phoneNumber}`);
+    let combinedKeywords = [session.topic, ...words, ...entities];
+    // Dù AI có bảo OUT_OF_SCOPE, ta vẫn lấy nguyên câu khách gõ để ép tìm kiếm
+    const testContext = await handleFAQContext(message, combinedKeywords);
 
-        // XÓA BỘ NHỚ TẠM vì đã hoàn thành kịch bản
-        userSessions.delete(userId);
+      if (testContext && testContext.hasData) {
+        console.log("✅ Khách đã nhập ngành. Ráp nối thành công! Xóa trí nhớ.");
+        session.step = null;
+        session.topic = null;
 
-        return {
-          type: "text",
-          message: `Cảm ơn bạn! Ban tuyển sinh đã nhận được số điện thoại ${phoneNumber}. Các thầy cô sẽ gọi lại tư vấn chi tiết về ngành ${session.major} cho bạn trong thời gian sớm nhất nhé.`
-        };
-      } 
-      
-      // Nếu user gõ bậy bạ (ví dụ "không cho đâu", "hủy")
-      else if (msgText.match(/không|thôi|hủy|quay lại/)) {
-        userSessions.delete(userId);
-        return {
-          type: "text",
-          message: "Dạ vâng, bạn có thể để lại số điện thoại sau cũng được. Bạn cần tìm hiểu thêm thông tin gì về trường không?"
-        };
+        testContext.data = [testContext.data[0]];
+
+        const reply = await generateReply(message, testContext);
+        return { type: "text", ...reply };
       }
-      
-      // Nếu gõ sai định dạng SĐT
-      else {
-        return {
-          type: "text",
-          message: "Số điện thoại có vẻ chưa đúng định dạng. Bạn vui lòng nhập lại số điện thoại (ví dụ: 0912345678) để được hỗ trợ nhé."
-        };
-      }
+    }
+    else {
+      console.log("Khách bẻ lái hoặc không tìm thấy. GIỮ NGUYÊN TRÍ NHỚ!");
     }
   }
 
-  // ==========================================
-  // 2. XỬ LÝ NLP & CÁC LUỒNG BÌNH THƯỜNG
-  // ==========================================
-  const nlpResult = await detectIntent(message); 
-  const intent = nlpResult.intent;
-  const entities = nlpResult.entities; 
+  const nameMatch = msgText.match(/(?:mình là|tôi là|em là|anh là|chị là|mình tên|tôi tên|em tên|tên là)\s+([a-zà-ỹ\s]+)$/i);
+  if (nameMatch) {
+    // Lấy tên ra và viết hoa chữ cái đầu cho lịch sự (ví dụ: "mạnh" -> "Mạnh")
+    let rawName = nameMatch[1].trim();
+    let cleanName = rawName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-  // ... (Các luồng OUT_OF_SCOPE, GREETING, FAQ giữ nguyên như cũ) ...
+    // Lưu tên vào bộ nhớ Session
+    session.userName = cleanName;
+    console.log(`👤 [User Info] Đã lưu tên khách hàng: ${session.userName}`);
 
+    // Trả lời ngay lập tức
+    return {
+      type: "text",
+      message: `Chào ${cleanName} nhé! Rất vui được trò chuyện với bạn. ${cleanName} đang muốn tìm hiểu về khối ngành nào, hay cần hỗ trợ thông tin tuyển sinh ạ?`
+    };
+  }
+  // ==========================================
+  // 🛑 4. KIỂM TRA OUT_OF_SCOPE (ĐƯA XUỐNG ƯU TIÊN 2)
+  // ==========================================
   if (intent === "OUT_OF_SCOPE") {
     return { 
       type: "text", 
@@ -107,7 +111,7 @@ module.exports = async function chatService(userId, message) {
     };
   }
 
-  // 3. XỬ LÝ CHÀO HỎI
+  // 5. XỬ LÝ CHÀO HỎI
   if (intent === "GREETING") {
     return { 
       type: "text", 
@@ -115,25 +119,71 @@ module.exports = async function chatService(userId, message) {
     };
   }
 
-  // Luồng Đăng ký tư vấn / Quan tâm ngành học
-if (intent === "FAQ") {
-    
-    // Lấy nguyên văn tài liệu từ Excel (Đã lưu trong RAM)
-    const context = await handleFAQContext(message);
+  // ==========================================
+  // 📚 6. LUỒNG FAQ BÌNH THƯỜNG
+  // ==========================================
+if (intent === "FAQ" || intent === "1. FAQ") {
+    const context = await handleFAQContext(message, entities);
 
-    // Gọi hàm sinh câu trả lời của bạn, truyền cả user message và systemPrompt vào
-    const reply = await generateReply(message, context);
+    // 💡 DANH SÁCH 1: CHỦ ĐỀ NGẶT NGHÈO (Bắt buộc phải có ngành mới trả lời được)
+    const strictTopics = ["điểm chuẩn", "điểm sàn", "tổ hợp môn", "môn học"];
     
+    // 💡 DANH SÁCH 2: CHỦ ĐỀ LAI (Có thể trả lời chung, nhưng vẫn cần lưu trí nhớ ngầm)
+    const hybridTopics = ["học phí", "thực tập", "du học"];
+
+    // Quét tìm Topic
+    let currentStrictTopic = entities.find(e => strictTopics.includes(e.toLowerCase())) || 
+                             (msgText.match(new RegExp(strictTopics.join("|"), "i")) || [])[0];
+    let currentHybridTopic = entities.find(e => hybridTopics.includes(e.toLowerCase())) || 
+                             (msgText.match(new RegExp(hybridTopics.join("|"), "i")) || [])[0];
+
+    const isAskingProcedure = msgText.match(/đóng|nộp|cách|hướng dẫn|thủ tục/);
+    const hasMajorWord = msgText.includes("ngành") || msgText.includes("khoa");
+
+    if (context && context.hasData) {
+      
+      // 🔥 TRƯỜNG HỢP 1: CHỦ ĐỀ LAI (Ví dụ: Học phí)
+      // Nếu hỏi học phí mà chưa có ngành -> Bật trí nhớ ngầm, nhưng KHÔNG CHẶN câu trả lời
+      if (currentHybridTopic && !hasMajorWord && !isAskingProcedure) {
+        console.log(`🧠 [Memory] Kích hoạt trí nhớ ngầm cho chủ đề Lai [${currentHybridTopic}]`);
+        session.step = "WAITING_FOR_MAJOR";
+        session.topic = currentHybridTopic?.toLowerCase();
+        // KHÔNG CÓ lệnh return ở đây -> Nó sẽ trôi xuống dưới để in ra cái Bảng Giá Học Phí Chung
+      }
+
+      // 🛑 TRƯỜNG HỢP 2: CHỦ ĐỀ NGẶT NGHÈO (Ví dụ: Điểm chuẩn)
+      // Chặn lại và hỏi ngược lại khách hàng ngay lập tức
+      if (currentStrictTopic && !hasMajorWord) {
+        console.log(`⚠️ [Memory] Thiếu ngành cho chủ đề Ngặt nghèo [${currentStrictTopic}]. Chặn lại hỏi!`);
+        session.step = "WAITING_FOR_MAJOR";
+        session.topic = currentStrictTopic?.toLowerCase();
+
+        return {
+          type: "text",
+          message: `Bạn đang quan tâm đến ${currentStrictTopic} của ngành học nào để mình kiểm tra thông tin cụ thể cho bạn nhé?`,
+          displayLink: null,
+          displaySuggestion: null,
+          tuitionList: [],
+          intentType: "ASK_MISSING_INFO"
+        };
+      }
+    }
+
+    // Nếu có tên session.userName, nhét vào context cho AI xưng hô
+    if (session.userName) context.userName = session.userName;
+
+    // Trả lời (Dành cho hỏi thủ tục, hỏi đầy đủ, hoặc in bảng giá của Chủ đề Lai)
+    const reply = await generateReply(message, context);
     return {
       type: "text",
-      message: reply
+      ...reply 
     };
   }
 
-  // Fallback cho AI sinh câu trả lời
-  const reply = await generateReply(message, {});
+  // 7. FALLBACK
+  const fallbackReply = await generateReply(message, { hasData: false });
   return {
     type: "text",
-    message: "Admin đang lắng nghe đây ạ. Bạn cần hỗ trợ thông tin gì về kỳ tuyển sinh năm nay?"
-  };  
+    ...fallbackReply
+  };
 };
