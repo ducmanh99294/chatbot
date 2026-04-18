@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import './App.css'
 import { useAuthContext } from "./context/AuthContext";
-import ChatbotHome from "./components/ChatAi";
+import ChatbotAi from "./components/ChatAi";
 
 
 function App() {
@@ -11,7 +11,6 @@ function App() {
   const location = useLocation(); 
   
   const noHeaderFooterPaths = ["/login", "/register",];
-  const hideHeaderFooter = noHeaderFooterPaths.includes(location.pathname);
   
   const { fetchMe, fetchDoctor } = useAuth();
   const user = useAuthContext();
@@ -31,7 +30,7 @@ function App() {
       {/* {!hideHeaderFooter && <Header />} */}
       
       <Routes>
-        <Route path="/" element={<ChatbotHome />} />
+        <Route path="/" element={<ChatbotAi />} />
        </Routes>
       
       {/* {!hideHeaderFooter && <Footer />} */}

@@ -10,9 +10,9 @@ const sampleQuestions = [
   'phương thức xét tuyển',
   'Thực tập',
   "học bổng trường mình",
-  
+
 ];
-function App() {
+const ChatbotAi = () => {
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -337,4 +337,4 @@ function App() {
   );
 }
 
-export default App;
+export default ChatbotAi;
