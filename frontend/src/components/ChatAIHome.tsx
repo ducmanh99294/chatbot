@@ -170,31 +170,45 @@ function App() {
             ) : (
               // 2. Nếu đã chat: Hiển thị danh sách tin nhắn
               <div className="messages-list">
-              <div className="message-bubble">
-                <ReactMarkdown 
-                  components={{
-                    // Cấu hình để khi user click vào link, nó mở ra tab mới (target="_blank")
-                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" style={{color: '#007bff', textDecoration: 'underline'}} />
-                  }}
-                >
-                  {msg.message}
-                </ReactMarkdown>
-              </div>
-                
-                {/* Hiển thị Typing Indicator ngay dưới tin nhắn cuối cùng */}
-                {isTyping && (
-                  <div className="message-wrapper is-ai">
-                    <div className="typing-indicator">
-                      <div className="typing-dots">
-                        <span></span><span></span><span></span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Thẻ div ẩn để tự động cuộn xuống đáy */}
-                <div ref={messagesEndRef} />
-              </div>
+                {/* Bắt buộc phải có vòng lặp .map này thì mới có biến "msg" */}
+                {messages.map((msg, index) => (
+    <div key={index} className={`message-wrapper ${msg.role === 'user' ? 'is-user' : 'is-ai'}`}>
+      <div className="message-bubble">
+        
+        {/* Bọc ReactMarkdown bên trong vòng lặp */}
+        <ReactMarkdown 
+          components={{
+            a: ({node, ...props}) => (
+              <a 
+                {...props} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{color: '#007bff', textDecoration: 'underline'}} 
+              />
+            )
+          }}
+        >
+          {msg.message}
+        </ReactMarkdown>
+
+      </div>
+    </div>
+  ))}
+  
+  {/* Hiển thị Typing Indicator ngay dưới tin nhắn cuối cùng */}
+  {isTyping && (
+    <div className="message-wrapper is-ai">
+      <div className="typing-indicator">
+        <div className="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  )}
+  
+  {/* Thẻ div ẩn để tự động cuộn xuống đáy */}
+  <div ref={messagesEndRef} />
+</div>
             )}
           </div>
 
