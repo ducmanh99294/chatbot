@@ -1,9 +1,6 @@
 import { Routes, Route, useLocation } from "react-router-dom"; // Đảm bảo đã import
 import { useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
-import Home from "./components/Home";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
 import './App.css'
 import { useAuthContext } from "./context/AuthContext";
 import ChatbotHome from "./components/ChatAIHome";

@@ -3,6 +3,7 @@ import '../assets/chatAiHome.css';
 import { useAuthContext } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { ChatAi } from '../api/chatApi';
+import ReactMarkdown from 'react-markdown';
 
 
 function App() {
@@ -169,13 +170,16 @@ function App() {
             ) : (
               // 2. Nếu đã chat: Hiển thị danh sách tin nhắn
               <div className="messages-list">
-                {messages.map((msg, index) => (
-                  <div key={index} className={`message-wrapper ${msg.role === 'user' ? 'is-user' : 'is-ai'}`}>
-                    <div className="message-bubble">
-                      {msg.message}
-                    </div>
-                  </div>
-                ))}
+              <div className="message-bubble">
+                <ReactMarkdown 
+                  components={{
+                    // Cấu hình để khi user click vào link, nó mở ra tab mới (target="_blank")
+                    a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" style={{color: '#007bff', textDecoration: 'underline'}} />
+                  }}
+                >
+                  {msg.message}
+                </ReactMarkdown>
+              </div>
                 
                 {/* Hiển thị Typing Indicator ngay dưới tin nhắn cuối cùng */}
                 {isTyping && (

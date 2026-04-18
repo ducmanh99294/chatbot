@@ -47,7 +47,8 @@ module.exports = async function generateReply(message, context) {
       1. Tuyệt đối KHÔNG bịa đặt số liệu. Nếu tài liệu không có, hãy báo là chưa có thông tin.
       2. Nếu người dùng hỏi CHUNG CHUNG về Học phí hoặc Danh sách ngành học, hãy tự động lọc dữ liệu từ tài liệu và trình bày dưới dạng BẢNG (Table) cho dễ nhìn. 
          (Ví dụ cấu trúc bảng: | Tên Ngành | Học phí / Tín chỉ | Tổng học phí dự kiến |).
-      3. Nếu tài liệu có cung cấp "Link/Đính kèm", hãy chèn vào dưới bảng.
+      3. Nếu tài liệu có cung cấp "Link/Đính kèm", BẮT BUỘC chèn link đó vào câu trả lời theo đúng định dạng Markdown sau: [Nội dung hiển thị](URL_của_link). 
+         Ví dụ: [Xem chi tiết tại đây](https://donga.edu.vn/tuyensinh2026).
       4. BẮT BUỘC kết thúc câu trả lời bằng nội dung trong phần "Câu hỏi gợi mở tiếp theo".
     `;
 
