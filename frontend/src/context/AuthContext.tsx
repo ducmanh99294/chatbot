@@ -48,35 +48,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   //loading
   const [isLoading, setLoading] = useState(true);
   
-  useEffect(() => {
-    const fetchMe = async () => {
-      try {
-        setLoading(true);
-        const me = await getMe();
-        setUser(me);
+  // useEffect(() => {
+  //   const fetchMe = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const me = await getMe();
+  //       setUser(me);
 
-        if (me?.role === 'doctor') {
-          const doctorData = await getDoctorById(me._id);
-          setDoctor(doctorData);
-        }
-      } catch {
-        setUser(null);
-        setDoctor(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  //       if (me?.role === 'doctor') {
+  //         const doctorData = await getDoctorById(me._id);
+  //         setDoctor(doctorData);
+  //       }
+  //     } catch (e) {
+  //       setUser(null);
+  //       setDoctor(null);
+  //       console.log(e)
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchMe();
-  }, []);
+  //   fetchMe();
+  // }, []);
 
   const logout = async () => {
-    try {
-      await logoutApi();
-    } finally {
-      setUser(null);
-      setDoctor(null);
-    }
+    // try {
+    //   await logoutApi();
+    // } finally {
+    //   setUser(null);
+    //   setDoctor(null);
+    // }
   };
 
 

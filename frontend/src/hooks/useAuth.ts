@@ -9,28 +9,28 @@ export const useAuth = () => {
   const { setUser, setDoctor, setLoading } = useAuthContext();
 
   const fetchMe = async () => {
-    try {
-      setLoading(true);
-      const user = await getMe();
-      setUser(user);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-    return {fetchMe};
+    // try {
+    //   setLoading(true);
+    //   const user = await getMe();
+    //   setUser(user);
+    // } catch {
+    //   setUser(null);
+    // } finally {
+    //   setLoading(false);
+    // }
+    // return {fetchMe};
   };
 
   const fetchDoctor = async (id: any) => {
-    try {
-      setLoading(true);
-      const doctor = await getDoctorById(id);
-      setDoctor(doctor);
-    } catch {
-      setDoctor(null);
-    } finally {
-      setLoading(false);
-    }
+    // try {
+    //   setLoading(true);
+    //   const doctor = await getDoctorById(id);
+    //   setDoctor(doctor);
+    // } catch {
+    //   setDoctor(null);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   return {
