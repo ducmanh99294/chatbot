@@ -1,7 +1,3 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 module.exports = async function generateReply(message, context) {
   // 1. NẾU BACKEND KHÔNG TÌM THẤY DỮ LIỆU
   if (!context || !context.hasData) {
@@ -116,7 +112,7 @@ async function rewriteWithAI(prompt, systemInstruction, retry = 0) {
           messages: [
             {
               role: "system",
-              content: systemInstruction // 👈 Đưa System Prompt động vào đây
+              content: systemInstruction 
             },
             {
               role: "user",
@@ -130,7 +126,7 @@ async function rewriteWithAI(prompt, systemInstruction, retry = 0) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Groq error:", data);
+      console.log("Groq error:", data);
       return "Hệ thống AI đang tạm thời lỗi.";
     }
 

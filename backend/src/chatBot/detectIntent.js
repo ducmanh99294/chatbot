@@ -1,8 +1,5 @@
 // const { GoogleGenerativeAI } = require("@google/generative-ai");
 const apiKey = process.env.GROQ_API_KEY;
-// const Specialty = require("../models/Speciatly");
-
-// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
  const INTENT_PROMPT = `
  Bạn là hệ thống phân loại ý định (Router) của một Trường Đại học.
@@ -46,7 +43,7 @@ async function detectIntent(message) {
     return result; // Kết quả sẽ có dạng: { intent: "MEDICAL", entities: ["đau đầu"] }
 
   } catch (error) {
-    console.error("Lỗi AI Router:", error);
+    console.log("Lỗi AI Router:", error);
     return { intent: "UNKNOWN", entities: [] }; 
   }
 }
